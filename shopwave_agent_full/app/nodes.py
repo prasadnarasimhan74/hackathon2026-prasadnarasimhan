@@ -1,4 +1,4 @@
-﻿import json
+import json
 import logging
 from typing import Any, Dict, List
 
@@ -56,12 +56,24 @@ tools available. Follow this exact process:
 4. Call get_product with the product_id from the order.
 5. Call search_knowledge_base with a query relevant to the issue (e.g.
    "refund policy", "warranty policy", "return policy").
-6. If the issue involves a refund or return, call check_refund_eligibility.
+6. If the issue involves a refund or return, call check_refund_eligibility with:
+   - order_id: the order ID
+   - as_of_date: the ticket's created_at date in YYYY-MM-DD format (e.g. "2024-03-15").
+     This ensures the return window is evaluated as of when the customer reported the
+     issue, not today.
 7. Decide on the final action:
-   - Refund eligible â†’ call issue_refund, then call send_reply confirming the refund.
-   - Needs human review (warranty claim, replacement, high-value order > $200,
-     fraud risk, or eligibility tool error) â†’ call escalate, then call send_reply
-     informing the customer that a specialist will follow up.
+   - check_refund_eligibility returns eligible: true → call issue_refund, then
+     call send_reply confirming the refund.
+   - check_refund_eligibility returns escalate_reason: "warranty_claim" → the
+     return window is expired but warranty is active. Check the ticket body:
+       * If the customer describes a defect, malfunction, or damage → escalate
+         as a warranty claim.
+       * If the customer just dislikes the product (no defect mentioned) → reply
+         that the return window is closed and no refund is available; do NOT issue
+         a refund or escalate.
+   - Needs human review (replacement, high-value order > $200, fraud risk, or
+     eligibility tool error) → call escalate, then call send_reply informing the
+     customer that a specialist will follow up.
    - Otherwise â†’ call send_reply with a helpful resolution.
 
 Rules:
